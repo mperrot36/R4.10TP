@@ -1,36 +1,54 @@
 import Testimony from "../testimonies/testimony.jsx";
+import useFetch from "../../../services/useFetch";
+import { useEffect, useState } from "react";
+
+const DEFAULT_IMAGE = "../../../assets/images/no_image.png"
+/**
+* On melange et on retourne une partie
+* @param {*} array
+* @param {*} length
+* @returns
+*/
+function shuffleArray(array, length=0) {
+    for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+    }
+    return length?array.slice(0,length):array;
+    }
+    export {shuffleArray};
 const testimonies  = () => {
-    const data=[
-        {
-        "image": "src/assets/images/avatar1.jpg",
-        "name": "Ella DEUTRANCHE",
-        "rating": 4,
-        "review": "J'ai essayé plusieurs restaurants de hamburgers dans la région, mais celui-ci est de loin le meilleur. Les hamburgers sont énormes et savoureux et le service est excellent. Je reviendrai à coup sûr !"
-        },
-        {
-        "image": "src/assets/images/avatar2.jpg",
-        "name": "Lambert GOER",
-        "rating": 3,
-        "review": "Je suis un végétarien difficile à satisfaire, mais j'ai été très content de voir que ce restaurant avait des options végétariennes pour moi. J'ai commandé un hamburger végétarien et il était délicieux !"
-        },
-        {
-        "image": "src/assets/images/avatar3.jpg",
-        "name": "Eva DEVORET",
-        "rating": 4,
-        "review": "Je suis une habituée de ce restaurant depuis des années et je n'ai jamais été déçue. Les hamburgers sont toujours frais et délicieux et le personnel est sympathique et accueillant."
-        },
-        {
-        "image": "src/assets/images/avatar4.jpg",
-        "name": "Jean REVEU",
-        "rating": 5,
-        "review": "J'ai été agréablement surpris par la qualité des hamburgers dans ce restaurant. Ils utilisent des ingrédients frais et les hamburgers sont cuits à la perfection. Je recommande fortement ce restaurant à tous les amateurs de hamburgers !"
+    const { data, loading, error } = useFetch("http://kazaburger.e-mingo.net/api/testimony");
+    const [suggestions, setSuggestions] = useState([]);
+    
+    useEffect(() => {
+        if (data && Array.isArray(data)) {
+            const people = data
+                
+                .map(item => ({
+                    image: "https://i.pravatar.cc/150"+String(item.review.length+item.user.length+item.rating) || DEFAULT_IMAGE,
+                    name: item.user || "Une personne",
+                    rating: item.rating || 5,
+                    review: item.review || "vraiment exceptionnel"
+                }));
+            const shufflePeople=shuffleArray(people,4)
+            setSuggestions(shufflePeople);
         }
-        ];
+        
+    }, [data]);
+
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+    if (error) {
+        return <div>Error: {error.message}</div>;
+    }
 	return (<section className="testimony">
         <h2>Nos clients témoignent </h2>
       
         <div className="content">
-        {data.map((item, i) => <Testimony key={i} {...item} />)}
+        {suggestions.map((item, i) => <Testimony key={i} {...item} />)}
         </div>
     </section>);
 }
