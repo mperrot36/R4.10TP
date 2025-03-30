@@ -1,151 +1,166 @@
 const express = require("express");
-const fetch = require("node-fetch");
 const router = express.Router();
 
-// Route pour obtenir toutes les témoignages
-router.get("/testimony", async (req, res) => {
-    const url = `${process.env.KAZABURGER_API_URL}/testimonies`;
-    const token = process.env.KAZABURGER_API_TOKEN;
-
+async function apiClient(endpoint, method, body = null) {
+    const baseUrl = process.env.KAZABURGER_API_URL; 
+    const url = `${baseUrl}${endpoint}`;
+    
+  
+    const options = {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": 'Bearer ' + process.env.KAZABURGER_API_TOKEN,
+      },
+    };
+  
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+  
     try {
-        const response = await fetch(url, {
-            method: "GET",
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
+      const response = await fetch(url, options);
+  
+      if (!response.ok) {
+        throw new Error(`Erreur API : ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      throw new Error(`Erreur lors de l'appel à l'API : ${error.message}`);
+    }
+  }
 
-        if (!response.ok) {
-            throw new Error("Échec de la récupération des témoignages.");
-        }
 
-        const data = await response.json();
+
+  router.get("/product/:id", async (req, res) => {
+    const productId = req.params.id;
+  
+    try {
+      const data = await apiClient(`/product/${productId}`,req.method );
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+router.get("/product/", async (req, res) => {
+    const family = req.query.family;
+    const title = req.query.title;
+    if (!family && !title) {
+        try {
+            const data = await apiClient("/product", req.method);
+            res.json(data);
+          } catch (error) {
+            res.status(500).json({ error: error.message });
+          }
+        
+    }
+
+    if (family) {
+    try {
+        const data = await apiClient(`/product?family=${family}`, req.method); 
         res.json(data);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+    }else if (title) {
+        try {
+            const data = await apiClient(`/product?title=${title}`,req.method); 
+            res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
 });
 
-// Route pour obtenir un témoignage spécifique par ID
+
+
+
+
+
+router.get("/testimony/", async (req, res) => {
+    const product= req.query.product;
+    const user = req.query.user;
+    if (!product && !user) {
+        try {
+            const data = await apiClient("/testimony", req.method );
+            res.json(data);
+          } catch (error) {
+            res.status(500).json({ error: error.message });
+          }
+        
+    }
+
+    if (product) {
+    try {
+        const data = await apiClient(`/testimony?product=${product}`, req.method ); 
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+    }else if (user) {
+        try {
+            const data = await apiClient(`/testimony?user=${user}`,req.method); 
+            res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+  
+});
+
+
+
 router.get("/testimony/:id", async (req, res) => {
-    const { id } = req.params;
-    const url = `${process.env.KAZABURGER_API_URL}/testimonies/${id}`;
-    const token = process.env.KAZABURGER_API_TOKEN;
-
+    const testimonyId = req.params.id;
+  
     try {
-        const response = await fetch(url, {
-            method: "GET",
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error("Témoignage non trouvé.");
-        }
-
-        const data = await response.json();
-        res.json(data);
+      const data = await apiClient(`/testimony/${testimonyId}`,req.method );
+      res.json(data);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
 });
 
-// Route pour ajouter un nouveau témoignage
 router.post("/testimony", async (req, res) => {
-    const { user, content } = req.body; 
-    const url = `${process.env.KAZABURGER_API_URL}/testimonies`;
-    const token = process.env.KAZABURGER_API_TOKEN;
-
-    const donnees = {
-        user,
-        content
-    };
-
-    try {
-        const response = await fetch(url, {
-            method: "POST",
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(donnees)
-        });
-
-        if (!response.ok) {
-            throw new Error("Échec de l'ajout du témoignage.");
-        }
-
-        const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  donnees = {
+    rating: req.body.rating,
+    review: req.body.review,
+    user: req.body.user,
+    product: req.body.product 
+  }
+  try {
+    fetch(process.env.KAZABURGER_API_URL + "/testimony/", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + process.env.KAZABURGER_API_TOKEN
+      }, body: JSON.stringify(donnees)
+    })
+  } catch (error) {
+    throw new Error(`Erreur lors de l'appel à l'API : ${error.message}`);
+  }
+  
 });
 
-// Route pour modifier un témoignage spécifique par ID
 router.patch("/testimony/:id", async (req, res) => {
-    const { id } = req.params;
-    const { user, content } = req.body; 
-    const url = `${process.env.KAZABURGER_API_URL}/testimonies/${id}`;
-    const token = process.env.KAZABURGER_API_TOKEN;
-
-    const donnees = {
-        user,
-        content
-    };
-
-    try {
-        const response = await fetch(url, {
-            method: "PATCH",
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(donnees)
-        });
-
-        if (!response.ok) {
-            throw new Error("Échec de la modification du témoignage.");
-        }
-
-        const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  res.send("témoignage " + req.params.id + " modifié");
 });
 
-// Route pour supprimer un témoignage spécifique par ID
 router.delete("/testimony/:id", async (req, res) => {
-    const { id } = req.params;
-    const url = `${process.env.KAZABURGER_API_URL}/testimonies/${id}`;
-    const token = process.env.KAZABURGER_API_TOKEN;
-
-    try {
-        const response = await fetch(url, {
-            method: "DELETE",
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error("Échec de la suppression du témoignage.");
-        }
-
-        res.json({ message: `Témoignage ${id} supprimé avec succès.` });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  res.send("témoignage " + req.params.id + " supprimé");
 });
 
-// Gestion des erreurs 404
+router.get("/:val", async (req, res) => {
+  console.log("un produit par id :val");
+});
+
 router.use((req, res) => {
-    res.status(404).send(`${req.method} : ${req.originalUrl} Page not found`);
+  res.status(404);
+  res.json({
+    error: `${req.method + ":" + req.originalUrl} Page not found`,
+  });
 });
 
 module.exports = router;
