@@ -1,5 +1,7 @@
 const express = require("express");
+const bcrypt = require('bcrypt');
 const router = express.Router();
+
 
 async function apiClient(endpoint, method, body = null) {
     const baseUrl = process.env.KAZABURGER_API_URL; 
@@ -124,36 +126,126 @@ router.get("/testimony/:id", async (req, res) => {
 });
 
 router.post("/testimony", async (req, res) => {
-  donnees = {
+  const donnees = {
     rating: req.body.rating,
     review: req.body.review,
     user: req.body.user,
-    product: req.body.product 
-  }
-  try {
-    fetch(process.env.KAZABURGER_API_URL + "/testimony/", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + process.env.KAZABURGER_API_TOKEN
-      }, body: JSON.stringify(donnees)
-    })
-  } catch (error) {
-    throw new Error(`Erreur lors de l'appel à l'API : ${error.message}`);
-  }
+    product: req.body.product,
+  };
+
   
+  try {
+    const data = await apiClient("/testimony", req.method, donnees);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 router.patch("/testimony/:id", async (req, res) => {
-  res.send("témoignage " + req.params.id + " modifié");
+  const donnees = {
+    rating: req.body.rating,
+    review: req.body.review,
+    user: req.body.user,
+    product: req.body.product,
+  };
+
+  const testimonyId = req.params.id;
+  try {
+    const data = await apiClient(`/testimony/${testimonyId}`, req.method, donnees);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 router.delete("/testimony/:id", async (req, res) => {
-  res.send("témoignage " + req.params.id + " supprimé");
+  const testimonyId = req.params.id;
+  try {
+    const data = await apiClient(`/testimony/${testimonyId}`, req.method);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-router.get("/:val", async (req, res) => {
-  console.log("un produit par id :val");
+router.get("/user/", async (req, res) => {
+  const email = req.query.email;
+  const login = req.query.login;
+  if (!email && !login) {
+      try {
+          const data = await apiClient("/user", req.method );
+          res.json(data);
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      
+  }
+
+  if (email) {
+  try {
+      const data = await apiClient(`/user?email=${email}`, req.method ); 
+      res.json(data);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+  }else if (login) {
+      try {
+          const data = await apiClient(`/user?login=${login}`,req.method); 
+          res.json(data);
+      } catch (error) {
+          res.status(500).json({ error: error.message });
+      }
+  }
+});
+router.get("/user/:id", async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const data = await apiClient(`/user/${userId}`, req.method );
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put("/user", async (req, res) => {
+  const donnees = {
+    login: req.body.login,
+    email: req.body.email,
+    name: req.body.name,
+    password: req.body.password,
+  };
+
+  
+  try {
+    const data = await apiClient(`/user`, "POST", donnees);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.patch("/user/:id", async (req, res) => {
+  const donnees = {
+    name: req.body.name,
+    password: req.body.password,
+  };
+
+  const userId = req.params.id;
+  try {
+    const data = await apiClient(`/user/${userId}`, "PATCH", donnees);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.delete("/user/:id", async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const data = await apiClient(`/user/${userId}`, "DELETE");
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 router.use((req, res) => {
@@ -162,5 +254,7 @@ router.use((req, res) => {
     error: `${req.method + ":" + req.originalUrl} Page not found`,
   });
 });
+
+
 
 module.exports = router;
