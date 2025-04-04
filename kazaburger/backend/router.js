@@ -39,8 +39,9 @@ async function apiClient(endpoint, method, body = null) {
     const productId = req.params.id;
   
     try {
-      const data = await apiClient(`/product/${productId}`,req.method );
-      res.json(data);
+      const data = await apiClient(`/product/`,req.method );
+      const filteredData = data.filter(item => item._id === productId);
+      res.json(filteredData);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -118,8 +119,9 @@ router.get("/testimony/:id", async (req, res) => {
     const testimonyId = req.params.id;
   
     try {
-      const data = await apiClient(`/testimony/${testimonyId}`,req.method );
-      res.json(data);
+      const data = await apiClient(`/testimony/`,req.method );
+      const filteredData = data.filter(item => item._id === testimonyId);
+      res.json(filteredData);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -201,8 +203,9 @@ router.get("/user/", async (req, res) => {
 router.get("/user/:id", async (req, res) => {
   const userId = req.params.id;
   try {
-    const data = await apiClient(`/user/${userId}`, req.method );
-    res.json(data);
+    const data = await apiClient(`/user/`,req.method );
+      const filteredData = data.filter(item => item._id === userId);
+      res.json(filteredData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -216,14 +219,22 @@ router.put("/user", async (req, res) => {
     password: req.body.password,
   };
 
-  
   try {
+    
+    const existingUsers = await apiClient(`/user?login=${donnees.login}&email=${donnees.email}`, "GET");
+
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ error: "Un utilisateur avec le même login ou email existe déjà." });
+    }
+
+    
     const data = await apiClient(`/user`, "POST", donnees);
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 router.patch("/user/:id", async (req, res) => {
   const donnees = {
     name: req.body.name,
@@ -247,6 +258,35 @@ router.delete("/user/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+router.post("/user", async (req, res) => {
+  const donnees = {
+    login: req.body.login,
+    password: req.body.password,
+  };
+  if (!donnees.login || !donnees.password) {
+    return res.status(400).json({ error: "Login et mot de passe sont requis." });
+  }
+  try {
+    const users = await apiClient(`/user?login=${donnees.login}`, "GET");
+    
+    if (users.length === 0) {
+      
+      return res.status(401).json({ error: "Login ou mot de passe incorrect." });
+    }
+    const user = users[0];
+    
+    const isPasswordValid = await bcrypt.compare(donnees.password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Login ou mot de passe incorrect." });
+    }
+    res.json({ message: "Authentification réussie."});
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 
 router.use((req, res) => {
   res.status(404);
