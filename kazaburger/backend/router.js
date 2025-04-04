@@ -1,3 +1,4 @@
+
 const express = require("express");
 const bcrypt = require('bcrypt');
 const router = express.Router();
@@ -34,6 +35,13 @@ async function apiClient(endpoint, method, body = null) {
   }
 
 
+  router.get("/", function (req, res) {
+    res.render("index");
+    });
+
+  router.get("/about", function (req, res) {
+    res.render("about");
+    });
 
   router.get("/product/:id", async (req, res) => {
     const productId = req.params.id;
